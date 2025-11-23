@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 
 interface Comment {
     id: string;
     content: string;
-    createdAt: Date;
+    createdAt: string;
     author: {
         id: string;
         name: string | null;
@@ -17,44 +20,50 @@ interface Comment {
 
 interface CommentItemProps {
     comment: Comment;
+    postId: string;
     onReply: (commentId: string, content: string) => void;
     depth?: number;
 }
 
-function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
+function CommentItem({ comment, postId, onReply, depth = 0 }: CommentItemProps) {
+    const { data: session } = useSession();
     const [showReplyForm, setShowReplyForm] = useState(false);
     const [replyContent, setReplyContent] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleReply = () => {
+    const handleReply = async () => {
         if (replyContent.trim()) {
-            onReply(comment.id, replyContent);
+            setIsSubmitting(true);
+            await onReply(comment.id, replyContent);
             setReplyContent('');
             setShowReplyForm(false);
+            setIsSubmitting(false);
         }
     };
 
-    const maxDepth = 3;
-    const canReply = depth < maxDepth;
+    const maxDepth = 2;
+    const canReply = session && depth < maxDepth;
 
     return (
         <div className={`${depth > 0 ? 'ml-8 mt-4' : 'mt-6'}`}>
             <div className="flex gap-3">
                 {/* Avatar */}
-                <div className="flex-shrink-0">
-                    {comment.author.avatar ? (
-                        <img
-                            src={comment.author.avatar}
-                            alt={comment.author.name || 'User'}
-                            className="w-10 h-10 rounded-full"
-                        />
-                    ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-sm font-medium">
+                <Link href={`/profile/${comment.author.id}`} className="flex-shrink-0">
+                    <div className="relative h-10 w-10 rounded-full overflow-hidden bg-muted">
+                        {comment.author.avatar ? (
+                            <Image
+                                src={comment.author.avatar}
+                                alt={comment.author.name || 'User'}
+                                fill
+                                className="object-cover"
+                            />
+                        ) : (
+                            <div className="h-full w-full flex items-center justify-center bg-primary text-primary-foreground text-sm font-medium">
                                 {(comment.author.name || 'U').charAt(0).toUpperCase()}
-                            </span>
-                        </div>
-                    )}
-                </div>
+                            </div>
+                        )}
+                    </div>
+                </Link>
 
                 {/* Comment Content */}
                 <div className="flex-1 min-w-0">
@@ -91,10 +100,11 @@ function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
                                 placeholder="Write a reply..."
                                 className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                                 rows={3}
+                                disabled={isSubmitting}
                             />
                             <div className="flex gap-2 mt-2">
-                                <button onClick={handleReply} className="btn-primary px-4 py-2 text-sm">
-                                    Post Reply
+                                <button onClick={handleReply} disabled={isSubmitting || !replyContent.trim()} className="btn-primary px-4 py-2 text-sm disabled:opacity-50">
+                                    {isSubmitting ? 'Posting...' : 'Post Reply'}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -116,6 +126,7 @@ function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
                                 <CommentItem
                                     key={reply.id}
                                     comment={reply}
+                                    postId={postId}
                                     onReply={onReply}
                                     depth={depth + 1}
                                 />
@@ -130,29 +141,56 @@ function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
 
 interface CommentSectionProps {
     postId: string;
-    initialComments?: Comment[];
 }
 
-export default function CommentSection({ postId, initialComments = [] }: CommentSectionProps) {
-    const [comments, setComments] = useState<Comment[]>(initialComments);
+export default function CommentSection({ postId }: CommentSectionProps) {
+    const { data: session } = useSession();
+    const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        fetchComments();
+    }, [postId]);
+
+    const fetchComments = async () => {
+        try {
+            const response = await fetch(`/api/comments?postId=${postId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setComments(data);
+            }
+        } catch (error) {
+            console.error('Error fetching comments:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleSubmitComment = async () => {
-        if (!newComment.trim()) return;
+        if (!session?.user?.id) {
+            setError('You must be signed in to comment');
+            return;
+        }
 
+        if (!newComment.trim()) {
+            setError('Comment cannot be empty');
+            return;
+        }
+
+        setError('');
         setIsSubmitting(true);
-        try {
-            // TODO: Replace with actual user ID from session
-            const userId = 'demo-user-id';
 
+        try {
             const response = await fetch('/api/comments', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     content: newComment,
                     postId,
-                    userId,
+                    userId: session.user.id,
                 }),
             });
 
@@ -161,20 +199,21 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
                 setComments([comment, ...comments]);
                 setNewComment('');
             } else {
-                console.error('Failed to post comment');
+                const errorData = await response.json();
+                setError(errorData.error || 'Failed to post comment');
             }
         } catch (error) {
             console.error('Error posting comment:', error);
+            setError('An error occurred while posting your comment');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleReply = async (parentId: string, content: string) => {
-        try {
-            // TODO: Replace with actual user ID from session
-            const userId = 'demo-user-id';
+        if (!session?.user?.id) return;
 
+        try {
             const response = await fetch('/api/comments', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -182,20 +221,13 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
                     content,
                     postId,
                     parentId,
-                    userId,
+                    userId: session.user.id,
                 }),
             });
 
             if (response.ok) {
                 // Refresh comments to show the new reply
-                // In a real app, you'd update the state more efficiently
-                const commentsResponse = await fetch(`/api/comments?postId=${postId}`);
-                if (commentsResponse.ok) {
-                    const updatedComments = await commentsResponse.json();
-                    setComments(updatedComments);
-                }
-            } else {
-                console.error('Failed to post reply');
+                await fetchComments();
             }
         } catch (error) {
             console.error('Error posting reply:', error);
@@ -203,49 +235,96 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
     };
 
     return (
-        <section className="mt-16 pt-16 border-t border-border">
+        <section className="mt-12 pt-12 border-t border-border">
             <h2 className="text-2xl font-bold mb-6">
                 Comments ({comments.length})
             </h2>
 
-            {/* New Comment Form */}
-            <div className="mb-8">
-                <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Share your thoughts..."
-                    className="w-full px-4 py-3 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                    rows={4}
-                />
-                <div className="flex justify-end mt-3">
-                    <button
-                        onClick={handleSubmitComment}
-                        disabled={isSubmitting || !newComment.trim()}
-                        className="btn-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSubmitting ? 'Posting...' : 'Post Comment'}
-                    </button>
+            {/* Comment Form */}
+            {session ? (
+                <div className="mb-8">
+                    <div className="flex items-start space-x-3">
+                        {/* User Avatar */}
+                        <div className="relative h-10 w-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                            {session.user.image ? (
+                                <Image
+                                    src={session.user.image}
+                                    alt={session.user.name || 'You'}
+                                    fill
+                                    className="object-cover"
+                                />
+                            ) : (
+                                <div className="h-full w-full flex items-center justify-center bg-primary text-primary-foreground text-sm font-medium">
+                                    {(session.user.name || 'U').charAt(0).toUpperCase()}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Comment Input */}
+                        <div className="flex-1">
+                            <textarea
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                placeholder="Share your thoughts..."
+                                className="w-full px-4 py-3 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                                rows={3}
+                                disabled={isSubmitting}
+                            />
+                            {error && (
+                                <p className="mt-2 text-sm text-red-500">{error}</p>
+                            )}
+                            <div className="flex gap-2 mt-3">
+                                <button
+                                    onClick={handleSubmitComment}
+                                    disabled={isSubmitting || !newComment.trim()}
+                                    className="btn-primary px-4 py-2 disabled:opacity-50"
+                                >
+                                    {isSubmitting ? 'Posting...' : 'Post Comment'}
+                                </button>
+                                {newComment && (
+                                    <button
+                                        onClick={() => setNewComment('')}
+                                        className="btn-secondary px-4 py-2"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="glass-card p-6 mb-8 text-center">
+                    <p className="text-muted-foreground mb-3">
+                        Sign in to join the conversation
+                    </p>
+                    <Link href="/auth/signin" className="btn-primary px-6 py-2 inline-block">
+                        Sign In
+                    </Link>
+                </div>
+            )}
 
             {/* Comments List */}
-            <div className="space-y-4">
-                {comments.length > 0 ? (
-                    comments.map((comment) => (
+            {isLoading ? (
+                <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            ) : comments.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                    No comments yet. Be the first to share your thoughts!
+                </p>
+            ) : (
+                <div className="space-y-2">
+                    {comments.map((comment) => (
                         <CommentItem
                             key={comment.id}
                             comment={comment}
+                            postId={postId}
                             onReply={handleReply}
                         />
-                    ))
-                ) : (
-                    <div className="text-center py-12 glass-card">
-                        <p className="text-muted-foreground">
-                            No comments yet. Be the first to share your thoughts!
-                        </p>
-                    </div>
-                )}
-            </div>
+                    ))}
+                </div>
+            )}
         </section>
     );
 }

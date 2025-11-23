@@ -12,15 +12,31 @@ interface Tag {
     slug: string;
 }
 
-export default function CreatePage() {
+interface Post {
+    id: string;
+    title: string;
+    slug: string;
+    content: string;
+    excerpt: string;
+    coverImage: string | null;
+    published: boolean;
+    authorId: string;
+    tags: Array<{
+        tag: Tag;
+    }>;
+}
+
+export default function EditPostPage({ params }: { params: { slug: string } }) {
     const router = useRouter();
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const [post, setPost] = useState<Post | null>(null);
     const [title, setTitle] = useState('');
     const [excerpt, setExcerpt] = useState('');
     const [content, setContent] = useState('');
     const [coverImage, setCoverImage] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
@@ -32,9 +48,47 @@ export default function CreatePage() {
             .catch((err) => console.error('Error fetching tags:', err));
     }, []);
 
-    const handlePublish = async (published: boolean) => {
+    useEffect(() => {
+        // Fetch the post to edit
+        const fetchPost = async () => {
+            try {
+                const response = await fetch(`/api/posts/${params.slug}`);
+                if (!response.ok) {
+                    throw new Error('Post not found');
+                }
+                const data = await response.json();
+
+                // Check if user is the author
+                if (session?.user?.id && data.authorId !== session.user.id) {
+                    setError('You are not authorized to edit this post');
+                    setIsLoading(false);
+                    return;
+                }
+
+                setPost(data);
+                setTitle(data.title);
+                setExcerpt(data.excerpt);
+                setContent(data.content);
+                setCoverImage(data.coverImage || '');
+                setSelectedTags(data.tags.map((t: any) => t.tag.id));
+                setIsLoading(false);
+            } catch (err) {
+                console.error('Error fetching post:', err);
+                setError('Failed to load post');
+                setIsLoading(false);
+            }
+        };
+
+        if (status === 'authenticated') {
+            fetchPost();
+        } else if (status === 'unauthenticated') {
+            router.push('/auth/signin');
+        }
+    }, [params.slug, session, status, router]);
+
+    const handleUpdate = async (published: boolean) => {
         if (!session?.user?.id) {
-            setError('You must be signed in to create a post');
+            setError('You must be signed in to edit a post');
             return;
         }
 
@@ -46,8 +100,8 @@ export default function CreatePage() {
         setError('');
         setIsSubmitting(true);
         try {
-            const response = await fetch('/api/posts', {
-                method: 'POST',
+            const response = await fetch(`/api/posts/${params.slug}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title,
@@ -55,21 +109,20 @@ export default function CreatePage() {
                     content,
                     coverImage: coverImage || null,
                     published,
-                    authorId: session.user.id,
                     tags: selectedTags,
                 }),
             });
 
             if (response.ok) {
-                const post = await response.json();
-                router.push(`/blog/${post.slug}`);
+                const updatedPost = await response.json();
+                router.push(`/blog/${updatedPost.slug}`);
             } else {
                 const errorData = await response.json();
-                setError(errorData.error || 'Failed to create post');
+                setError(errorData.error || 'Failed to update post');
             }
         } catch (error) {
-            console.error('Error creating post:', error);
-            setError('An error occurred while creating the post. Please try again.');
+            console.error('Error updating post:', error);
+            setError('An error occurred while updating the post. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -83,13 +136,44 @@ export default function CreatePage() {
         );
     };
 
+    if (status === 'loading' || isLoading) {
+        return (
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div className="max-w-4xl mx-auto">
+                    <div className="flex items-center justify-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error && !post) {
+        return (
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div className="max-w-4xl mx-auto">
+                    <div className="glass-card p-8 text-center">
+                        <h1 className="text-2xl font-bold mb-4 text-red-500">Error</h1>
+                        <p className="text-muted-foreground mb-6">{error}</p>
+                        <button
+                            onClick={() => router.push('/')}
+                            className="btn-primary px-6 py-3"
+                        >
+                            Go Home
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="max-w-4xl mx-auto">
                 <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-2">Create Your Story</h1>
+                    <h1 className="text-4xl font-bold mb-2">Edit Your Story</h1>
                     <p className="text-muted-foreground">
-                        Share your thoughts and ideas with the world
+                        Update your article and share your latest thoughts
                     </p>
                 </div>
 
@@ -184,21 +268,21 @@ export default function CreatePage() {
                     {/* Actions */}
                     <div className="flex gap-4 pt-6 border-t border-border">
                         <button
-                            onClick={() => handlePublish(true)}
+                            onClick={() => handleUpdate(true)}
                             disabled={isSubmitting}
                             className="btn-primary px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isSubmitting ? 'Publishing...' : 'Publish'}
+                            {isSubmitting ? 'Updating...' : 'Update & Publish'}
                         </button>
                         <button
-                            onClick={() => handlePublish(false)}
+                            onClick={() => handleUpdate(false)}
                             disabled={isSubmitting}
                             className="btn-secondary px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Save as Draft
                         </button>
                         <button
-                            onClick={() => router.push('/')}
+                            onClick={() => router.push(`/blog/${params.slug}`)}
                             disabled={isSubmitting}
                             className="btn-secondary px-6 py-3 disabled:opacity-50"
                         >
@@ -215,7 +299,7 @@ export default function CreatePage() {
                             <strong>📸 Instant Image Uploads:</strong> Click the image icon or drag & drop images directly into the editor. Images are automatically compressed and uploaded to Cloudflare R2.
                         </p>
                         <p>
-                            <strong>🔒 Note:</strong> You must be signed in to publish articles. Posts can be saved as drafts or published immediately.
+                            <strong>🔒 Note:</strong> The post URL will remain the same even if you change the title. This ensures existing links continue to work.
                         </p>
                     </div>
                 </div>
@@ -223,4 +307,3 @@ export default function CreatePage() {
         </div>
     );
 }
-

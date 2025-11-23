@@ -7,9 +7,9 @@ import ReadingProgress from '@/components/ReadingProgress';
 import LikeButton from '@/components/LikeButton';
 import BookmarkButton from '@/components/BookmarkButton';
 import ShareButtons from '@/components/ShareButtons';
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import CommentSection from '@/components/CommentSection';
+import EditButton from '@/components/EditButton';
+
 
 async function getPost(slug: string) {
     const post = await prisma.post.findUnique({
@@ -117,6 +117,11 @@ export default async function BlogPost({ params }: { params: { slug: string } })
                 <div className="max-w-4xl mx-auto">
                     {/* Header */}
                     <header className="mb-12 space-y-6 animate-fade-in">
+                        {/* Edit Button */}
+                        <div className="flex justify-end">
+                            <EditButton postSlug={post.slug} authorId={post.author.id} />
+                        </div>
+
                         {/* Tags */}
                         <div className="flex flex-wrap gap-2">
                             {post.tags.map((postTag) => (
@@ -195,31 +200,21 @@ export default async function BlogPost({ params }: { params: { slug: string } })
                     )}
 
                     {/* Content */}
-                    <div className="prose prose-lg mb-12">
-                        <ReactMarkdown
-                            components={{
-                                code({ node, inline, className, children, ...props }: any) {
-                                    const match = /language-(\w+)/.exec(className || '');
-                                    return !inline && match ? (
-                                        <SyntaxHighlighter
-                                            style={vscDarkPlus}
-                                            language={match[1]}
-                                            PreTag="div"
-                                            {...props}
-                                        >
-                                            {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                    ) : (
-                                        <code className={className} {...props}>
-                                            {children}
-                                        </code>
-                                    );
-                                },
-                            }}
-                        >
-                            {post.content}
-                        </ReactMarkdown>
-                    </div>
+                    <div
+                        className="prose prose-lg prose-invert max-w-none mb-12
+                            prose-headings:font-bold prose-headings:text-foreground
+                            prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl
+                            prose-p:text-muted-foreground prose-p:leading-relaxed
+                            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                            prose-strong:text-foreground prose-strong:font-semibold
+                            prose-code:text-primary prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+                            prose-pre:bg-secondary prose-pre:border prose-pre:border-border
+                            prose-img:rounded-lg prose-img:max-w-full prose-img:h-auto prose-img:my-6
+                            prose-ul:list-disc prose-ul:pl-6 prose-ol:list-decimal prose-ol:pl-6
+                            prose-li:text-muted-foreground prose-li:my-2
+                            prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic"
+                        dangerouslySetInnerHTML={{ __html: post.content }}
+                    />
 
                     {/* Share */}
                     <div className="py-8 border-y border-border mb-12">
@@ -287,6 +282,9 @@ export default async function BlogPost({ params }: { params: { slug: string } })
                             </div>
                         </section>
                     )}
+
+                    {/* Comment Section */}
+                    <CommentSection postId={post.id} />
                 </div>
             </article>
         </>

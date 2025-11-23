@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/posts/[slug] - Fetch a single post by slug
@@ -52,14 +54,24 @@ export async function PUT(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const body = await request.json();
-        const { title, content, excerpt, coverImage, tags, published, userId } = body;
+        // Get user from session
+        const session = await getServerSession(authOptions);
 
-        // TODO: Get userId from session
-        if (!userId) {
+        if (!session?.user?.id) {
             return NextResponse.json(
                 { error: 'Authentication required' },
                 { status: 401 }
+            );
+        }
+
+        const body = await request.json();
+        const { title, content, excerpt, coverImage, tags, published } = body;
+
+        // Validate required fields
+        if (!title?.trim() || !content?.trim() || !excerpt?.trim()) {
+            return NextResponse.json(
+                { error: 'Title, content, and excerpt are required' },
+                { status: 400 }
             );
         }
 
@@ -72,20 +84,11 @@ export async function PUT(
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
 
-        if (existingPost.authorId !== userId) {
+        if (existingPost.authorId !== session.user.id) {
             return NextResponse.json(
-                { error: 'Unauthorized' },
+                { error: 'Unauthorized - You can only edit your own posts' },
                 { status: 403 }
             );
-        }
-
-        // Generate new slug if title changed
-        let newSlug = params.slug;
-        if (title && title !== existingPost.title) {
-            newSlug = title
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/(^-|-$)/g, '');
         }
 
         // Calculate reading time if content changed
@@ -96,32 +99,64 @@ export async function PUT(
             readingTime = Math.ceil(words / wordsPerMinute);
         }
 
-        // Update post
-        const post = await prisma.post.update({
-            where: { slug: params.slug },
-            data: {
-                title,
-                slug: newSlug,
-                content,
-                excerpt,
-                coverImage,
-                readingTime,
-                published,
-            },
-            include: {
-                author: {
-                    select: {
-                        id: true,
-                        name: true,
-                        avatar: true,
+        // Update post with tags in a transaction
+        const post = await prisma.$transaction(async (tx) => {
+            // Delete existing tags
+            await tx.postTag.deleteMany({
+                where: { postId: existingPost.id },
+            });
+
+            // Update post (keep original slug)
+            const updatedPost = await tx.post.update({
+                where: { slug: params.slug },
+                data: {
+                    title,
+                    content,
+                    excerpt,
+                    coverImage: coverImage || null,
+                    readingTime,
+                    published: published ?? existingPost.published,
+                    // Note: slug is NOT updated to preserve URLs
+                },
+                include: {
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatar: true,
+                        },
                     },
                 },
-                tags: {
-                    include: {
-                        tag: true,
+            });
+
+            // Add new tags if provided
+            if (tags && Array.isArray(tags) && tags.length > 0) {
+                await tx.postTag.createMany({
+                    data: tags.map((tagId: string) => ({
+                        postId: updatedPost.id,
+                        tagId,
+                    })),
+                });
+            }
+
+            // Fetch the complete post with tags
+            return await tx.post.findUnique({
+                where: { id: updatedPost.id },
+                include: {
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatar: true,
+                        },
+                    },
+                    tags: {
+                        include: {
+                            tag: true,
+                        },
                     },
                 },
-            },
+            });
         });
 
         return NextResponse.json(post);
