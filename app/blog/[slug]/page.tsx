@@ -9,7 +9,10 @@ import BookmarkButton from '@/components/BookmarkButton';
 import ShareButtons from '@/components/ShareButtons';
 import CommentSection from '@/components/CommentSection';
 import EditButton from '@/components/EditButton';
+import FollowButton from '@/components/FollowButton';
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
 
 async function getPost(slug: string) {
     const post = await prisma.post.findUnique({
@@ -24,8 +27,14 @@ async function getPost(slug: string) {
                 },
             },
             tags: {
-                include: {
-                    tag: true,
+                select: {
+                    tag: {
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                        },
+                    },
                 },
             },
             _count: {
@@ -181,7 +190,7 @@ export default async function BlogPost({ params }: { params: { slug: string } })
                             {/* Engagement */}
                             <div className="flex items-center space-x-4">
                                 <LikeButton postId={post.id} initialLikes={post._count.likes} />
-                                <BookmarkButton postId={post.id} />
+                                <BookmarkButton postId={post.id} postSlug={post.slug} />
                             </div>
                         </div>
                     </header>
@@ -251,7 +260,7 @@ export default async function BlogPost({ params }: { params: { slug: string } })
                                     <p className="text-muted-foreground mt-2">{post.author.bio}</p>
                                 )}
                             </div>
-                            <button className="btn-primary px-4 py-2">Follow</button>
+                            <FollowButton userId={post.author.id} />
                         </div>
                     </div>
 

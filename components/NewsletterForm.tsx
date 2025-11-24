@@ -21,7 +21,7 @@ export default function NewsletterForm() {
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             setStatus('success');
-            setMessage('Thank you for subscribing! Check your email for confirmation.');
+            setMessage('Thank you for your interest! Newsletter feature coming soon.');
             setEmail('');
 
             // Reset after 5 seconds
@@ -42,7 +42,7 @@ export default function NewsletterForm() {
 
     return (
         <div className="space-y-4">
-            <form onSubmit={handleSubmit} className="max-w-md mx-auto flex gap-2">
+            <form onSubmit={handleSubmit} className="max-w-md mx-auto flex flex-col sm:flex-row gap-2">
                 <input
                     type="email"
                     value={email}
@@ -55,7 +55,7 @@ export default function NewsletterForm() {
                 <button
                     type="submit"
                     disabled={status === 'loading'}
-                    className="btn-primary px-6 py-2 disabled:opacity-50"
+                    className="btn-primary px-6 py-2 disabled:opacity-50 w-full sm:w-auto"
                 >
                     {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
                 </button>

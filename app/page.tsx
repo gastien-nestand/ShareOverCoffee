@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import ArticleCard from '@/components/ArticleCard';
 import NewsletterForm from '@/components/NewsletterForm';
+import RecommendedPosts from '@/components/RecommendedPosts';
 import Link from 'next/link';
 
 async function getPosts() {
@@ -131,6 +132,9 @@ export default async function Home() {
                     </div>
                 )}
             </section>
+
+            {/* Recommended Posts */}
+            <RecommendedPosts />
 
             {/* Newsletter Section */}
             <section className="mt-20 glass-card p-12 text-center space-y-6">

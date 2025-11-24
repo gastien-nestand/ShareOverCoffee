@@ -15,6 +15,7 @@ export default function Header() {
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -59,7 +60,7 @@ export default function Header() {
                         <span className="text-xl font-bold gradient-text">ShareOverCoffee</span>
                     </Link>
 
-                    {/* Navigation */}
+                    {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center space-x-6">
                         <Link
                             href="/"
@@ -82,7 +83,7 @@ export default function Header() {
                     </nav>
 
                     {/* Actions */}
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2 sm:space-x-4">
                         {/* Search Button */}
                         <button
                             onClick={() => setSearchOpen(!searchOpen)}
@@ -143,9 +144,26 @@ export default function Header() {
                             </button>
                         )}
 
-                        {/* Auth Buttons */}
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="md:hidden p-2 rounded-md hover:bg-accent transition-colors"
+                            aria-label="Menu"
+                        >
+                            {mobileMenuOpen ? (
+                                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            ) : (
+                                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            )}
+                        </button>
+
+                        {/* Auth Buttons - Desktop */}
                         {session ? (
-                            <div className="relative">
+                            <div className="hidden md:block relative">
                                 <button
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                                     className="flex items-center gap-2 p-1 rounded-full hover:bg-accent transition-colors"
@@ -177,6 +195,13 @@ export default function Header() {
                                             Profile
                                         </Link>
                                         <Link
+                                            href="/saved"
+                                            className="block px-4 py-2 text-sm hover:bg-accent transition-colors"
+                                            onClick={() => setUserMenuOpen(false)}
+                                        >
+                                            Saved Posts
+                                        </Link>
+                                        <Link
                                             href="/create"
                                             className="block px-4 py-2 text-sm hover:bg-accent transition-colors"
                                             onClick={() => setUserMenuOpen(false)}
@@ -199,13 +224,13 @@ export default function Header() {
                             <>
                                 <Link
                                     href="/auth/signin"
-                                    className="hidden sm:inline-flex btn-ghost px-4 py-2"
+                                    className="hidden sm:inline-flex btn-ghost px-3 py-2 text-sm"
                                 >
                                     Sign In
                                 </Link>
                                 <Link
                                     href="/auth/signup"
-                                    className="btn-primary px-4 py-2"
+                                    className="hidden sm:inline-flex btn-primary px-3 py-2 text-sm"
                                 >
                                     Get Started
                                 </Link>
@@ -240,6 +265,79 @@ export default function Header() {
                                 autoFocus
                             />
                         </form>
+                    </div>
+                )}
+
+                {/* Mobile Menu */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden pb-4 animate-fade-in border-t border-border mt-4 pt-4">
+                        <nav className="flex flex-col space-y-3">
+                            <Link
+                                href="/"
+                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Home
+                            </Link>
+                            <Link
+                                href="/search"
+                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Explore
+                            </Link>
+                            <Link
+                                href="/create"
+                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Write
+                            </Link>
+                            {session ? (
+                                <>
+                                    <Link
+                                        href={`/profile/${session.user.id}`}
+                                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Profile
+                                    </Link>
+                                    <Link
+                                        href="/saved"
+                                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Saved Posts
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            setMobileMenuOpen(false);
+                                            signOut();
+                                        }}
+                                        className="text-left text-sm font-medium text-red-500 hover:text-red-600 transition-colors px-2 py-1"
+                                    >
+                                        Sign Out
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link
+                                        href="/auth/signin"
+                                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Sign In
+                                    </Link>
+                                    <Link
+                                        href="/auth/signup"
+                                        className="btn-primary px-4 py-2 text-sm text-center"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        Get Started
+                                    </Link>
+                                </>
+                            )}
+                        </nav>
                     </div>
                 )}
             </div>

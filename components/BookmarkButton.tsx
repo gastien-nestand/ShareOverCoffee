@@ -1,30 +1,83 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 interface BookmarkButtonProps {
     postId: string;
+    postSlug: string;
     initialBookmarked?: boolean;
 }
 
 export default function BookmarkButton({
     postId,
+    postSlug,
     initialBookmarked = false,
 }: BookmarkButtonProps) {
+    const { data: session } = useSession();
     const [bookmarked, setBookmarked] = useState(initialBookmarked);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Fetch initial bookmark status
+    useEffect(() => {
+        if (!session?.user?.id) return;
+
+        const fetchBookmarkStatus = async () => {
+            try {
+                const response = await fetch(`/api/posts/${postSlug}/bookmark`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setBookmarked(data.bookmarked);
+                }
+            } catch (error) {
+                console.error('Error fetching bookmark status:', error);
+            }
+        };
+
+        fetchBookmarkStatus();
+    }, [postSlug, session]);
 
     const handleBookmark = async () => {
+        if (!session?.user?.id) {
+            // Redirect to sign in
+            window.location.href = '/auth/signin';
+            return;
+        }
+
+        setIsLoading(true);
+        const previousState = bookmarked;
+
+        // Optimistic update
         setBookmarked(!bookmarked);
-        // TODO: Make API call to toggle bookmark
-        // await fetch(`/api/posts/${postId}/bookmark`, { method: 'POST' });
+
+        try {
+            const response = await fetch(`/api/posts/${postSlug}/bookmark`, {
+                method: 'POST',
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setBookmarked(data.bookmarked);
+            } else {
+                // Revert on error
+                setBookmarked(previousState);
+            }
+        } catch (error) {
+            console.error('Error toggling bookmark:', error);
+            // Revert on error
+            setBookmarked(previousState);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
         <button
             onClick={handleBookmark}
+            disabled={isLoading}
             className={cn(
-                'p-2 rounded-full transition-colors',
+                'p-2 rounded-full transition-colors disabled:opacity-50',
                 bookmarked
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-secondary text-secondary-foreground hover:bg-accent'

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import TopLoader from "@/components/TopLoader";
 import { generateMetadata as getMetadata } from "@/lib/metadata";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -22,10 +23,11 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={`${inter.variable} font-sans antialiased`}>
+                <TopLoader />
                 <AuthProvider>
                     <ThemeProvider
                         attribute="class"
-                        defaultTheme="dark"
+                        defaultTheme="light"
                         enableSystem
                         disableTransitionOnChange
                     >

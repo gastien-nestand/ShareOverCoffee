@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // POST /api/users/[id]/follow - Toggle follow on a user
@@ -7,16 +9,17 @@ export async function POST(
     { params }: { params: { id: string } }
 ) {
     try {
-        const body = await request.json();
-        const { userId } = body;
+        // Get user from session
+        const session = await getServerSession(authOptions);
 
-        // TODO: Get userId from session
-        if (!userId) {
+        if (!session?.user?.id) {
             return NextResponse.json(
                 { error: 'Authentication required' },
                 { status: 401 }
             );
         }
+
+        const userId = session.user.id;
 
         // Can't follow yourself
         if (userId === params.id) {
@@ -96,15 +99,17 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const searchParams = request.nextUrl.searchParams;
-        const userId = searchParams.get('userId');
+        // Get user from session
+        const session = await getServerSession(authOptions);
 
-        if (!userId) {
+        if (!session?.user?.id) {
             return NextResponse.json(
-                { error: 'User ID required' },
-                { status: 400 }
+                { error: 'Authentication required' },
+                { status: 401 }
             );
         }
+
+        const userId = session.user.id;
 
         const follow = await prisma.follow.findUnique({
             where: {
