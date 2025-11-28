@@ -64,11 +64,17 @@ async function getFeaturedPost() {
 }
 
 export default async function Home() {
-    const [featuredPost, posts] = await Promise.all([
+    let [featuredPost, posts] = await Promise.all([
         getFeaturedPost(),
         getPosts(),
     ]);
 
+    // If no post is explicitly featured, use the most recent one
+    if (!featuredPost && posts.length > 0) {
+        featuredPost = posts[0];
+    }
+
+    // Filter out the featured post from regular posts to avoid duplication
     const regularPosts = posts.filter((post) => post.id !== featuredPost?.id);
 
     return (
@@ -95,9 +101,6 @@ export default async function Home() {
             {/* Featured Article */}
             {featuredPost && (
                 <section className="mb-16">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold">Featured Article</h2>
-                    </div>
                     <ArticleCard post={featuredPost} featured />
                 </section>
             )}
@@ -105,7 +108,7 @@ export default async function Home() {
             {/* Latest Articles */}
             <section>
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold">Latest Articles</h2>
+                    <h2 className="text-2xl font-bold">More Stories</h2>
                     <Link
                         href="/search"
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"

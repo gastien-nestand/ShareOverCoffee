@@ -63,16 +63,16 @@ export default function Header() {
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center space-x-6">
                         <Link
-                            href="/"
-                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            Home
-                        </Link>
-                        <Link
                             href="/search"
                             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                         >
                             Explore
+                        </Link>
+                        <Link
+                            href="/about"
+                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            About
                         </Link>
                         <Link
                             href="/create"
@@ -273,18 +273,18 @@ export default function Header() {
                     <div className="md:hidden pb-4 animate-fade-in border-t border-border mt-4 pt-4">
                         <nav className="flex flex-col space-y-3">
                             <Link
-                                href="/"
-                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Home
-                            </Link>
-                            <Link
                                 href="/search"
                                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 Explore
+                            </Link>
+                            <Link
+                                href="/about"
+                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                About
                             </Link>
                             <Link
                                 href="/create"
