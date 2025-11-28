@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/posts - Fetch all posts with pagination and filtering
@@ -156,6 +157,10 @@ export async function POST(request: NextRequest) {
                 },
             },
         });
+
+        // Revalidate homepage and search pages to show new post immediately
+        revalidatePath('/');
+        revalidatePath('/search');
 
         return NextResponse.json(post, { status: 201 });
     } catch (error) {

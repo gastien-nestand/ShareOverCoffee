@@ -189,7 +189,7 @@ export default async function BlogPost({ params }: { params: { slug: string } })
 
                             {/* Engagement */}
                             <div className="flex items-center space-x-4">
-                                <LikeButton postId={post.id} initialLikes={post._count.likes} />
+                                <LikeButton postSlug={post.slug} initialLikes={post._count.likes} />
                                 <BookmarkButton postId={post.id} postSlug={post.slug} />
                             </div>
                         </div>

@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LikeButtonProps {
-    postId: string;
+    postSlug: string;
     initialLikes: number;
     initialLiked?: boolean;
 }
 
 export default function LikeButton({
-    postId,
+    postSlug,
     initialLikes,
     initialLiked = false,
 }: LikeButtonProps) {
@@ -23,6 +23,9 @@ export default function LikeButton({
         setTimeout(() => setIsAnimating(false), 300);
 
         // Optimistic update
+        const previousLikes = likes;
+        const previousLiked = liked;
+
         if (liked) {
             setLikes((prev) => prev - 1);
             setLiked(false);
@@ -31,8 +34,27 @@ export default function LikeButton({
             setLiked(true);
         }
 
-        // TODO: Make API call to toggle like
-        // await fetch(`/api/posts/${postId}/like`, { method: 'POST' });
+        try {
+            // Make API call to toggle like
+            const response = await fetch(`/api/posts/${postSlug}/like`, {
+                method: 'POST',
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to toggle like');
+            }
+
+            const data = await response.json();
+
+            // Update with server response
+            setLikes(data.likeCount);
+            setLiked(data.liked);
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            // Revert optimistic update on error
+            setLikes(previousLikes);
+            setLiked(previousLiked);
+        }
     };
 
     return (

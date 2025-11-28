@@ -212,7 +212,7 @@ export default function CreatePage() {
                             <strong>✨ Rich Text Editor:</strong> Use the toolbar to format your content with bold, italic, headings, lists, code blocks, quotes, and more.
                         </p>
                         <p className="mb-2">
-                            <strong>📸 Instant Image Uploads:</strong> Click the image icon or drag & drop images directly into the editor. Images are automatically compressed and uploaded to Cloudflare R2.
+                            <strong>📸 Instant Image Uploads:</strong> Click the image icon or drag & drop images directly into the editor. 
                         </p>
                         <p>
                             <strong>🔒 Note:</strong> You must be signed in to publish articles. Posts can be saved as drafts or published immediately.

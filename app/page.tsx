@@ -4,6 +4,9 @@ import NewsletterForm from '@/components/NewsletterForm';
 import RecommendedPosts from '@/components/RecommendedPosts';
 import Link from 'next/link';
 
+// Revalidate this page every 60 seconds
+export const revalidate = 60;
+
 async function getPosts() {
     const posts = await prisma.post.findMany({
         where: { published: true },

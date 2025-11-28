@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // POST /api/posts/[slug]/like - Toggle like on a post
@@ -7,11 +9,9 @@ export async function POST(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const body = await request.json();
-        const { userId } = body;
+        const session = await getServerSession(authOptions);
 
-        // TODO: Get userId from session
-        if (!userId) {
+        if (!session?.user?.id) {
             return NextResponse.json(
                 { error: 'Authentication required' },
                 { status: 401 }
@@ -32,7 +32,7 @@ export async function POST(
             where: {
                 postId_userId: {
                     postId: post.id,
-                    userId,
+                    userId: session.user.id,
                 },
             },
         });
@@ -59,7 +59,7 @@ export async function POST(
             await prisma.like.create({
                 data: {
                     postId: post.id,
-                    userId,
+                    userId: session.user.id,
                 },
             });
 
@@ -88,15 +88,7 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const searchParams = request.nextUrl.searchParams;
-        const userId = searchParams.get('userId');
-
-        if (!userId) {
-            return NextResponse.json(
-                { error: 'User ID required' },
-                { status: 400 }
-            );
-        }
+        const session = await getServerSession(authOptions);
 
         const post = await prisma.post.findUnique({
             where: { slug: params.slug },
@@ -106,21 +98,26 @@ export async function GET(
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
 
-        const like = await prisma.like.findUnique({
-            where: {
-                postId_userId: {
-                    postId: post.id,
-                    userId,
+        let liked = false;
+
+        if (session?.user?.id) {
+            const like = await prisma.like.findUnique({
+                where: {
+                    postId_userId: {
+                        postId: post.id,
+                        userId: session.user.id,
+                    },
                 },
-            },
-        });
+            });
+            liked = !!like;
+        }
 
         const likeCount = await prisma.like.count({
             where: { postId: post.id },
         });
 
         return NextResponse.json({
-            liked: !!like,
+            liked,
             likeCount,
         });
     } catch (error) {
