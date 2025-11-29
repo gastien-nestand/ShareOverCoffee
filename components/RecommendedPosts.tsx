@@ -45,7 +45,7 @@ export default function RecommendedPosts() {
     if (loading) {
         return (
             <section className="mt-16">
-                <h2 className="text-2xl font-bold mb-6">✨ Recommended for You</h2>
+                <h2 className="text-2xl font-bold mb-6">Recommended for You</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1, 2, 3].map((i) => (
                         <div key={i} className="glass-card p-6 animate-pulse">
@@ -66,10 +66,8 @@ export default function RecommendedPosts() {
     return (
         <section className="mt-16">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">✨ Recommended for You</h2>
-                <p className="text-sm text-muted-foreground">
-                    Based on your interests and follows
-                </p>
+                <h2 className="text-2xl font-bold">Recommended for You</h2>
+
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

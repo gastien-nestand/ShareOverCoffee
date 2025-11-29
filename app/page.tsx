@@ -85,9 +85,7 @@ export default async function Home() {
                     Discover Stories & Ideas
                 </h1>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    A modern platform for readers and writers to share knowledge,
-                    insights, and creativity.
-                </p>
+                    If you can’t explain it simply, you don’t understand it well enough. Break down one thing you learned this week in a way anyone could grasp over coffee.                </p>
                 <div className="flex justify-center gap-4">
                     <Link href="/search" className="btn-primary px-6 py-3">
                         Start Reading
