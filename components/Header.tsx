@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
+import NotificationBell from './NotificationBell';
 
 export default function Header() {
     const { theme, setTheme } = useTheme();
@@ -104,6 +105,9 @@ export default function Header() {
                                 />
                             </svg>
                         </button>
+
+                        {/* Notification Bell */}
+                        <NotificationBell />
 
                         {/* Theme Toggle */}
                         {mounted && (

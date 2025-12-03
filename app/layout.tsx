@@ -6,14 +6,29 @@ import { AuthProvider } from "@/components/AuthProvider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TopLoader from "@/components/TopLoader";
+import NotificationPrompt from "@/components/NotificationPrompt";
 import { generateMetadata as getMetadata } from "@/lib/metadata";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
-export const metadata: Metadata = getMetadata({
-    title: "ShareOverCoffee - Share Your Stories",
-    description: "Discover insightful articles on psychology, business intelligence, systems analysis, technology, finance, and personal stories.",
-});
+export const metadata: Metadata = {
+    ...getMetadata({
+        title: "ShareOverCoffee - Share Your Stories",
+        description: "Discover insightful articles on psychology, business intelligence, systems analysis, technology, finance, and personal stories.",
+    }),
+    manifest: '/manifest.json',
+    themeColor: '#0f172a',
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'default',
+        title: 'ShareOverCoffee',
+    },
+    viewport: {
+        width: 'device-width',
+        initialScale: 1,
+        maximumScale: 1,
+    },
+};
 
 export default function RootLayout({
     children,
@@ -36,6 +51,7 @@ export default function RootLayout({
                             <main className="flex-1">{children}</main>
                             <Footer />
                         </div>
+                        <NotificationPrompt />
                     </ThemeProvider>
                 </AuthProvider>
             </body>

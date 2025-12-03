@@ -162,6 +162,14 @@ export async function POST(request: NextRequest) {
         revalidatePath('/');
         revalidatePath('/search');
 
+        // Send notifications to followers if post is published
+        if (published === true) {
+            const { notifyNewPost } = await import('@/lib/notifications/triggers');
+            await notifyNewPost(post.id, authorId).catch(err => {
+                console.error('Error sending new post notifications:', err);
+            });
+        }
+
         return NextResponse.json(post, { status: 201 });
     } catch (error) {
         console.error('Error creating post:', error);
