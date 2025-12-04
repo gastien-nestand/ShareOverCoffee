@@ -8,59 +8,69 @@ import Link from 'next/link';
 export const revalidate = 60;
 
 async function getPosts() {
-    const posts = await prisma.post.findMany({
-        where: { published: true },
-        include: {
-            author: {
-                select: {
-                    name: true,
-                    avatar: true,
+    try {
+        const posts = await prisma.post.findMany({
+            where: { published: true },
+            include: {
+                author: {
+                    select: {
+                        name: true,
+                        avatar: true,
+                    },
+                },
+                tags: {
+                    include: {
+                        tag: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        likes: true,
+                    },
                 },
             },
-            tags: {
-                include: {
-                    tag: true,
-                },
+            orderBy: {
+                createdAt: 'desc',
             },
-            _count: {
-                select: {
-                    likes: true,
-                },
-            },
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
-        take: 9,
-    });
+            take: 9,
+        });
 
-    return posts;
+        return posts;
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+        return [];
+    }
 }
 
 async function getFeaturedPost() {
-    const featuredPost = await prisma.post.findFirst({
-        where: { published: true, featured: true },
-        include: {
-            author: {
-                select: {
-                    name: true,
-                    avatar: true,
+    try {
+        const featuredPost = await prisma.post.findFirst({
+            where: { published: true, featured: true },
+            include: {
+                author: {
+                    select: {
+                        name: true,
+                        avatar: true,
+                    },
+                },
+                tags: {
+                    include: {
+                        tag: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        likes: true,
+                    },
                 },
             },
-            tags: {
-                include: {
-                    tag: true,
-                },
-            },
-            _count: {
-                select: {
-                    likes: true,
-                },
-            },
-        },
-    });
+        });
 
-    return featuredPost;
+        return featuredPost;
+    } catch (error) {
+        console.error('Error fetching featured post:', error);
+        return null;
+    }
 }
 
 export default async function Home() {
