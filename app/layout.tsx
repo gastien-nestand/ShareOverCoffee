@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TopLoader from "@/components/TopLoader";
 import NotificationPrompt from "@/components/NotificationPrompt";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { generateMetadata as getMetadata } from "@/lib/metadata";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -52,6 +53,7 @@ export default function RootLayout({
                             <Footer />
                         </div>
                         <NotificationPrompt />
+                        <PWAInstallPrompt />
                     </ThemeProvider>
                 </AuthProvider>
             </body>
